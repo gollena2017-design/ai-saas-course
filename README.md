@@ -36,3 +36,43 @@
 - додати AI-функції;
 - створити користувацький інтерфейс;
 - підключити SaaS-функціональність.
+
+## Мінімальний Telegram-бот
+
+Бот реалізований на aiogram 3.x у `app/mifin.py`. Він вітає користувача на
+команду `/start` і показує коротку довідку на `/help`.
+
+### Налаштування токена
+
+1. Скопіюйте шаблон: `cp .env.example .env`.
+2. Відкрийте локальний файл `.env` і вставте токен, отриманий від
+   [@BotFather](https://t.me/BotFather), після знака `=`:
+
+   ```env
+   BOT_TOKEN=ваш_реальний_токен_від_BotFather
+   ```
+
+Не додавайте токен у код і не комітьте `.env`: він уже вказаний у `.gitignore`.
+
+### Локальний запуск
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app/mifin.py
+```
+
+### Запуск у Docker з hot reload
+
+Docker Compose передає `BOT_TOKEN` з локального `.env` у контейнер, але сам
+файл не копіюється в образ. Compose Watch синхронізує зміни в `app/` та
+автоматично перезапускає бота.
+
+Після того як додасте `BOT_TOKEN` у `.env`, запустіть:
+
+```bash
+docker compose up --build --watch
+```
+
+Щоб зупинити бота, натисніть `Ctrl + C` у цьому терміналі.
