@@ -2,7 +2,7 @@ import asyncio
 import os
 
 from aiogram import Bot, Dispatcher
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
 from dotenv import load_dotenv
 
@@ -14,7 +14,18 @@ async def start_command(message: Message) -> None:
     """Відповідає на команду /start."""
     await message.answer(
         "Вітаю! 👋\n"
-        "Я навчальний Telegram-бот на aiogram."
+        "Я навчальний Telegram-бот на aiogram.\n\n"
+        "Надішліть /help, щоб побачити доступні команди."
+    )
+
+
+async def help_command(message: Message) -> None:
+    """Відповідає на команду /help."""
+    await message.answer(
+        "ℹ️ Я мінімальний бот навчального проєкту.\n\n"
+        "Доступні команди:\n"
+        "/start — привітання\n"
+        "/help — коротка довідка про бота"
     )
 
 
@@ -25,6 +36,7 @@ async def main() -> None:
 
     dispatcher = Dispatcher()
     dispatcher.message.register(start_command, CommandStart())
+    dispatcher.message.register(help_command, Command("help"))
 
     async with Bot(token=token) as bot:
         await dispatcher.start_polling(bot)
