@@ -39,7 +39,7 @@
 
 ## Мінімальний Telegram-бот
 
-Бот реалізований на aiogram 3.x у `app/mifin.py`. Він вітає користувача на
+Бот реалізований на aiogram 3.x у `app/main.py`. Він вітає користувача на
 команду `/start` і показує коротку довідку на `/help`.
 
 ### Налаштування токена
@@ -60,7 +60,7 @@
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python app/mifin.py
+python app/main.py
 ```
 
 ### Запуск у Docker з hot reload
