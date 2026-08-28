@@ -76,3 +76,17 @@ docker compose up --build --watch
 ```
 
 Щоб зупинити бота, натисніть `Ctrl + C` у цьому терміналі.
+
+## Debug / Troubleshooting
+
+Якщо бот не запускається, перевірте:
+
+1. Чи активне правильне Python-середовище.
+2. Чи встановлені залежності:
+
+```bash
+python3 -m pip install -r requirements.txt
+
+3. Чи є `BOT_TOKEN` у локальному `.env`.
+4. Чи `.env` не потрапляє в Git.
+5. Чи немає помилок у traceback.
