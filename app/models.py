@@ -1,10 +1,22 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Numeric, String
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy import (
+    BigInteger,
+    Date,
+    DateTime,
+    ForeignKey,
+    Numeric,
+    String,
+)
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    mapped_column,
+    relationship,
+)
 
 
 class Base(DeclarativeBase):
@@ -15,16 +27,19 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+
     telegram_id: Mapped[int] = mapped_column(
         BigInteger,
         unique=True,
         nullable=False,
         index=True,
     )
+
     username: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
     )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,
@@ -40,11 +55,13 @@ class Category(Base):
     __tablename__ = "categories"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+
     name: Mapped[str] = mapped_column(
         String(100),
         unique=True,
         nullable=False,
     )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,
@@ -61,14 +78,26 @@ class Transaction(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id"),
-        nullable=False,
+        nullable=True,
     )
 
     category_id: Mapped[int | None] = mapped_column(
         ForeignKey("categories.id"),
         nullable=True,
+    )
+
+    type: Mapped[str] = mapped_column(
+        String(20),
+        default="expense",
+        nullable=False,
+    )
+
+    transaction_date: Mapped[date] = mapped_column(
+        Date,
+        default=date.today,
+        nullable=False,
     )
 
     amount: Mapped[Decimal] = mapped_column(
@@ -87,7 +116,7 @@ class Transaction(Base):
         nullable=False,
     )
 
-    user: Mapped["User"] = relationship(
+    user: Mapped["User | None"] = relationship(
         back_populates="transactions"
     )
 
