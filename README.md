@@ -63,6 +63,8 @@ pip install -r requirements.txt
 python app/main.py
 ```
 
+Admin branch `saas/admin-management` provides a simple admin UI for creating and deleting transactions.
+
 ### Запуск у Docker з hot reload
 
 Docker Compose передає `BOT_TOKEN` з локального `.env` у контейнер, але сам
