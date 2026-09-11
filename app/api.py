@@ -149,7 +149,6 @@ async def get_summary():
         }
 
 
-
     @app.delete("/api/transactions/{transaction_id}")
     async def delete_transaction(transaction_id: int):
         async with async_session() as session:
