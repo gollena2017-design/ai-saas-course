@@ -137,7 +137,13 @@ function App() {
     return <div className="container error">{error}</div>
   }
 
-  const sorted = [...transactions].sort((a, b) => {
+  const filtered = transactions.filter(t => {
+    if (!query) return true
+    const q = query.toLowerCase()
+    return (t.description || '').toLowerCase().includes(q) || (t.category || '').toLowerCase().includes(q)
+  })
+
+  const sorted = [...filtered].sort((a, b) => {
     const dir = sortDir === 'asc' ? 1 : -1
 
     if (sortBy === 'date') {
