@@ -245,14 +245,7 @@ function App() {
           <label>Пошук: <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="опис або категорія" /></label>
         </div>
       </section>
-  const filtered = transactions.filter(t => {
-    if (!query) return true
-    const q = query.toLowerCase()
-    return (t.description || '').toLowerCase().includes(q) || (t.category || '').toLowerCase().includes(q)
-  })
-
-  const sorted = [...filtered].sort((a, b) => {
-
+      
       <section>
         <h2>Операції</h2>
 
