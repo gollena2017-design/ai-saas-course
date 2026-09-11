@@ -14,6 +14,8 @@ function App() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [sortBy, setSortBy] = useState('date')
+  const [sortDir, setSortDir] = useState('desc')
 
   useEffect(() => {
     async function loadData() {
@@ -134,6 +136,33 @@ function App() {
     return <div className="container error">{error}</div>
   }
 
+  const sorted = [...transactions].sort((a, b) => {
+    const dir = sortDir === 'asc' ? 1 : -1
+
+    if (sortBy === 'date') {
+      return (new Date(a.date) - new Date(b.date)) * dir
+    }
+
+    if (sortBy === 'amount') {
+      return (Number(a.amount) - Number(b.amount)) * dir
+    }
+
+    if (sortBy === 'type') {
+      return a.type.localeCompare(b.type) * dir
+    }
+
+    return 0
+  })
+
+  const handleSort = (key) => {
+    if (sortBy === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortBy(key)
+      setSortDir('asc')
+    }
+  }
+
   return (
     <main className="container">
       <h1>Фінансовий dashboard</h1>
@@ -206,9 +235,9 @@ function App() {
         <table>
           <thead>
             <tr>
-              <th>Дата</th>
-              <th>Тип</th>
-              <th>Сума</th>
+              <th onClick={() => handleSort('date')} style={{cursor:'pointer'}}>Дата {sortBy==='date'?(sortDir==='asc'?'↑':'↓'):''}</th>
+              <th onClick={() => handleSort('type')} style={{cursor:'pointer'}}>Тип {sortBy==='type'?(sortDir==='asc'?'↑':'↓'):''}</th>
+              <th onClick={() => handleSort('amount')} style={{cursor:'pointer'}}>Сума {sortBy==='amount'?(sortDir==='asc'?'↑':'↓'):''}</th>
               <th>Категорія</th>
               <th>Опис</th>
               <th>Дія</th>
@@ -216,8 +245,8 @@ function App() {
           </thead>
 
           <tbody>
-            {transactions.map((transaction, index) => (
-              <tr key={index}>
+            {sorted.map((transaction, index) => (
+              <tr key={transaction.id ?? index}>
                 <td>{new Date(transaction.date).toLocaleString()}</td>
                 <td>{transaction.type}</td>
                 <td>{transaction.amount} грн</td>
