@@ -16,6 +16,7 @@ function App() {
   const [error, setError] = useState('')
   const [sortBy, setSortBy] = useState('date')
   const [sortDir, setSortDir] = useState('desc')
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     async function loadData() {
@@ -151,6 +152,12 @@ function App() {
       return a.type.localeCompare(b.type) * dir
     }
 
+    if (sortBy === 'category') {
+      const ca = (a.category || '').toLowerCase()
+      const cb = (b.category || '').toLowerCase()
+      return ca.localeCompare(cb) * dir
+    }
+
     return 0
   })
 
@@ -227,7 +234,18 @@ function App() {
           <button onClick={() => setFilter('income')} className={filter === 'income' ? 'active' : ''}>Доходи</button>
           <button onClick={() => setFilter('expense')} className={filter === 'expense' ? 'active' : ''}>Витрати</button>
         </div>
+
+        <div style={{marginTop:10}}>
+          <label>Пошук: <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="опис або категорія" /></label>
+        </div>
       </section>
+  const filtered = transactions.filter(t => {
+    if (!query) return true
+    const q = query.toLowerCase()
+    return (t.description || '').toLowerCase().includes(q) || (t.category || '').toLowerCase().includes(q)
+  })
+
+  const sorted = [...filtered].sort((a, b) => {
 
       <section>
         <h2>Операції</h2>
