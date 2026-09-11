@@ -223,7 +223,7 @@ function App() {
                 <td>{transaction.amount} грн</td>
                 <td>{transaction.category}</td>
                 <td>{transaction.description}</td>
-                <td><button onClick={() => handleDelete(transaction.id)}>Видалити</button></td>
+                <td><button className="delete-btn" onClick={() => handleDelete(transaction.id)} aria-label="Видалити">Видалити</button></td>
               </tr>
             ))}
           </tbody>
