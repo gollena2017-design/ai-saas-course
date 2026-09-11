@@ -149,15 +149,15 @@ async def get_summary():
         }
 
 
-    @app.delete("/api/transactions/{transaction_id}")
-    async def delete_transaction(transaction_id: int):
-        async with async_session() as session:
-            transaction = await session.get(Transaction, transaction_id)
+@app.delete("/api/transactions/{transaction_id}")
+async def delete_transaction(transaction_id: int):
+    async with async_session() as session:
+        transaction = await session.get(Transaction, transaction_id)
 
-            if transaction is None:
-                raise HTTPException(status_code=404, detail="Transaction not found")
+        if transaction is None:
+            raise HTTPException(status_code=404, detail="Transaction not found")
 
-            await session.delete(transaction)
-            await session.commit()
+        await session.delete(transaction)
+        await session.commit()
 
-            return {"status": "deleted"}
+        return {"status": "deleted"}
