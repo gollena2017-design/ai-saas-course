@@ -3,7 +3,7 @@ import './App.css'
 
 function App() {
   const [transactions, setTransactions] = useState([])
-  const [summary, setSummary] = useState(null)
+  const [summary, setSummary] = useState({ total_income: 0, total_expense: 0, balance: 0 })
   const [filter, setFilter] = useState('all')
   const [form, setForm] = useState({
     type: 'expense',
