@@ -8,8 +8,22 @@ from sqlalchemy.orm import selectinload
 
 from .db import async_session
 from .models import Category, Transaction
-from .llm import call_gemini_analyze
-from fastapi import BackgroundTasks
+from .llm import call_gemini_analyze, extract_json_from_text
+import asyncio
+from pydantic import ValidationError
+from typing import List
+
+
+class LLMCatItem(BaseModel):
+    name: str
+    total: float
+
+
+class LLMParsedModel(BaseModel):
+    summary: str
+    categories: List[LLMCatItem]
+    risks: List[str]
+    recommendations: List[str]
 from pydantic import BaseModel
 from typing import Any, Dict
 
@@ -172,8 +186,8 @@ class AIAnalyzeRequest(BaseModel):
     # future: filters, date ranges, etc.
 
 
-@app.post("/api/ai/analyze-transactions")
-async def analyze_transactions_endpoint(data: AIAnalyzeRequest, background_tasks: BackgroundTasks | None = None):
+@app.post("/api/ai/analyze-transactions", response_model=None)
+async def analyze_transactions_endpoint(data: AIAnalyzeRequest):
     """Read transactions from DB, call Gemini, return raw structured response."""
     async with async_session() as session:
         stmt = select(Transaction).options(selectinload(Transaction.category)).order_by(Transaction.transaction_date.desc()).limit(data.limit)
@@ -192,11 +206,34 @@ async def analyze_transactions_endpoint(data: AIAnalyzeRequest, background_tasks
             for t in transactions
         ]
 
-    # Call Gemini synchronously (could be background task for long-running)
+    # Call Gemini in a thread to avoid blocking the event loop and DB pool.
     try:
-        res = call_gemini_analyze(txs)
+        loop = asyncio.get_running_loop()
+        call_coro = loop.run_in_executor(None, call_gemini_analyze, txs)
+        res = await asyncio.wait_for(call_coro, timeout=45)
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="LLM request timed out")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"LLM error: {e}")
 
-    # Return raw response for now; frontend should validate before display
-    return {"ok": True, "llm": res}
+    # If helper returned an error tuple/dict, surface it
+    if isinstance(res, dict) and res.get("error"):
+        raise HTTPException(status_code=502, detail=f"LLM service error: {res.get('error')}")
+
+    # Try to parse structured JSON from the LLM text
+    parsed = None
+    raw_text = res.get("raw") if isinstance(res, dict) else None
+    if raw_text:
+        parsed = extract_json_from_text(raw_text)
+
+    if parsed is None:
+        # return raw and indicate parsing failed
+        return {"ok": True, "llm": {"raw": raw_text, "parsed": None}}
+
+    # Validate with Pydantic
+    try:
+        validated = LLMParsedModel.parse_obj(parsed)
+    except ValidationError as ve:
+        return {"ok": True, "llm": {"raw": raw_text, "parsed": parsed, "validation_error": ve.errors()}}
+
+    return {"ok": True, "llm": {"raw": raw_text, "parsed": validated.dict()}}
