@@ -1,0 +1,9 @@
+[
+  {"id": 1, "type": "expense", "amount": 12.5, "category": "coffee", "description": "latte", "date": "2026-09-01"},
+  {"id": 2, "type": "expense", "amount": 45.0, "category": "groceries", "description": "market", "date": "2026-09-02"},
+  {"id": 3, "type": "income", "amount": 1200.0, "category": "salary", "description": "sep salary", "date": "2026-09-01"},
+  {"id": 4, "type": "expense", "amount": 200.0, "category": "electronics", "description": "headphones", "date": "2026-09-03"},
+  {"id": 5, "type": "expense", "amount": 15.0, "category": "coffee", "description": "espresso", "date": "2026-09-04"},
+  {"id": 6, "type": "expense", "amount": 30.0, "category": "transport", "description": "taxi", "date": "2026-09-05"},
+  {"id": 7, "type": "expense", "amount": 75.0, "category": "groceries", "description": "supermarket", "date": "2026-09-06"}
+]

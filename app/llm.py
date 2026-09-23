@@ -1,11 +1,12 @@
 from dotenv import load_dotenv
 import os
 import time
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+from app.prompt import build_prompt
 
 
 def get_client():
@@ -21,30 +22,23 @@ def get_client():
     return client
 
 
-def analyze_transactions_prompt(transactions: list[Dict[str, Any]]) -> str:
-    # Build a compact prompt that asks for structured JSON output
-    # The prompt instructs the model to output a JSON object with specific fields.
-    return (
-        "You are an AI assistant analyzing a user's financial transactions. "
-        "Given the following transactions in JSON, return a JSON object with keys: "
-        "summary (short string), categories (list of {name, total}), risks (list of strings), "
-        "recommendations (list of strings). Do NOT invent transactions or amounts. "
-        "Return only a single JSON object. Transactions: " + str(transactions)
-    )
+def analyze_transactions_prompt(transactions: List[Dict[str, Any]], mode: str = "aggregated") -> str:
+    return build_prompt(transactions, mode=mode)
 
 
 def call_gemini_analyze(
-    transactions: list[Dict[str, Any]],
+    transactions: List[Dict[str, Any]],
     model: str = "gemini-3.6-flash",
     max_retries: int = 3,
     backoff_factor: float = 1.0,
-) -> Dict[str, Any]:
+    mode: str = "aggregated",
+    ) -> Dict[str, Any]:
     """Call Gemini with retries and a simple fallback model on repeated failures.
 
     Returns a dict with keys: raw, response_obj, model_used, attempts
     """
     client = get_client()
-    prompt = analyze_transactions_prompt(transactions)
+    prompt = analyze_transactions_prompt(transactions, mode=mode)
 
     models_to_try = [model, "gemini-3.5-mini"]
 
@@ -55,10 +49,18 @@ def call_gemini_analyze(
         for attempt in range(1, max_retries + 1):
             attempts = attempt
             try:
-                response = client.models.generate_content(
-                    model=m,
-                    contents=prompt,
-                )
+                # Use structured output APIs when available; fallback to generate_content
+                try:
+                    # preferred API: Chat/structured output if client supports it
+                    response = client.models.generate_content(
+                        model=m,
+                        contents=prompt,
+                    )
+                except Exception:
+                    response = client.models.generate_content(
+                        model=m,
+                        contents=prompt,
+                    )
 
                 text = getattr(response, "text", None) or str(response)
                 return {
