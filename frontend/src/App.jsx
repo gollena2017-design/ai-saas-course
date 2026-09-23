@@ -96,7 +96,20 @@ function App() {
       if (!resp.ok) throw new Error('AI endpoint error')
       const data = await resp.json()
       if (!data.ok) throw new Error('AI returned error')
-      setAiResult(data.llm.parsed || { raw: data.llm.raw })
+      // Defensive handling: prefer validated parsed object, otherwise show raw text
+      if (data.llm && data.llm.parsed) {
+        setAiResult(data.llm.parsed)
+      } else if (data.llm && data.llm.raw) {
+        // try to parse raw JSON if present
+        try {
+          const parsed = JSON.parse(data.llm.raw)
+          setAiResult(parsed)
+        } catch (e) {
+          setAiResult({ summary: data.llm.raw, categories: [], risks: [], recommendations: [] })
+        }
+      } else {
+        setAiResult({ summary: 'No analysis available', categories: [], risks: [], recommendations: [] })
+      }
     } catch (err) {
       console.error(err)
       setAiError(String(err))
