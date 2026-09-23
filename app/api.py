@@ -27,6 +27,7 @@ class LLMParsedModel(BaseModel):
 from pydantic import BaseModel
 from typing import Any, Dict
 import functools
+from .settings import AGGREGATE_TX_THRESHOLD
 
 
 app = FastAPI(title="Finance SaaS API")
@@ -208,8 +209,8 @@ async def analyze_transactions_endpoint(data: AIAnalyzeRequest):
         ]
 
     # Choose prompt mode: use aggregated mode for larger numbers of transactions
-    # to reduce token usage. Threshold chosen empirically (5 transactions).
-    mode = "aggregated" if len(txs) > 5 else "full"
+    # to reduce token usage. Threshold can be controlled via `AGGREGATE_TX_THRESHOLD`.
+    mode = "aggregated" if len(txs) > AGGREGATE_TX_THRESHOLD else "full"
 
     # Call Gemini in a thread to avoid blocking the event loop and DB pool.
     try:
