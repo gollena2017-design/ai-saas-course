@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from .db import async_session
 from .models import Category, Transaction
-from .llm import call_gemini_analyze
+from .llm import call_gemini_analyze, extract_json_from_text
 from fastapi import BackgroundTasks
 from pydantic import BaseModel
 from typing import Any, Dict
@@ -198,5 +198,19 @@ async def analyze_transactions_endpoint(data: AIAnalyzeRequest, background_tasks
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"LLM error: {e}")
 
-    # Return raw response for now; frontend should validate before display
-    return {"ok": True, "llm": res}
+    # Try to parse structured JSON from the LLM text
+    parsed = None
+    raw_text = res.get("raw") if isinstance(res, dict) else None
+    if raw_text:
+        parsed = extract_json_from_text(raw_text)
+
+    if parsed is None:
+        # return raw and indicate parsing failed
+        return {"ok": True, "llm": {"raw": raw_text, "parsed": None}}
+
+    # Basic validation of expected keys
+    expected_keys = {"summary", "categories", "risks", "recommendations"}
+    if not expected_keys.issubset(set(parsed.keys())):
+        return {"ok": True, "llm": {"raw": raw_text, "parsed": parsed, "warning": "missing_keys"}}
+
+    return {"ok": True, "llm": {"raw": raw_text, "parsed": parsed}}

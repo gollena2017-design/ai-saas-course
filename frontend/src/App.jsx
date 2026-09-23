@@ -17,6 +17,9 @@ function App() {
   const [sortBy, setSortBy] = useState('date')
   const [sortDir, setSortDir] = useState('desc')
   const [query, setQuery] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState('')
+  const [aiResult, setAiResult] = useState(null)
 
   useEffect(() => {
     async function loadData() {
@@ -82,6 +85,23 @@ function App() {
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function runAiAnalysis() {
+    setAiLoading(true)
+    setAiError('')
+    try {
+      const resp = await fetch('/api/ai/analyze-transactions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limit: 200 }) })
+      if (!resp.ok) throw new Error('AI endpoint error')
+      const data = await resp.json()
+      if (!data.ok) throw new Error('AI returned error')
+      setAiResult(data.llm.parsed || { raw: data.llm.raw })
+    } catch (err) {
+      console.error(err)
+      setAiError(String(err))
+    } finally {
+      setAiLoading(false)
     }
   }
 
@@ -194,6 +214,31 @@ function App() {
         <div className="card">
           <h2>Баланс</h2>
           <p>{summary.balance} грн</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>AI Аналіз транзакцій</h2>
+        <div>
+          <button onClick={runAiAnalysis} disabled={aiLoading}>{aiLoading ? 'Аналіз...' : 'Запустити AI-аналіз'}</button>
+          {aiError && <div className="error">{aiError}</div>}
+          {aiResult && (
+            <div className="ai-result">
+              <h3>Резюме</h3>
+              <p>{aiResult.summary}</p>
+
+              <h4>Категорії</h4>
+              <ul>
+                {(aiResult.categories || []).map((c,i)=>(<li key={i}>{c.name}: {c.total}</li>))}
+              </ul>
+
+              <h4>Ризики</h4>
+              <ul>{(aiResult.risks||[]).map((r,i)=>(<li key={i}>{r}</li>))}</ul>
+
+              <h4>Рекомендації</h4>
+              <ul>{(aiResult.recommendations||[]).map((r,i)=>(<li key={i}>{r}</li>))}</ul>
+            </div>
+          )}
         </div>
       </section>
 

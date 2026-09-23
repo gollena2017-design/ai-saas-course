@@ -32,7 +32,7 @@ def analyze_transactions_prompt(transactions: list[Dict[str, Any]]) -> str:
     )
 
 
-def call_gemini_analyze(transactions: list[Dict[str, Any]], model: str = "gemini-1.5-mini") -> Dict[str, Any]:
+def call_gemini_analyze(transactions: list[Dict[str, Any]], model: str = "gemini-3.6-flash") -> Dict[str, Any]:
     client = get_client()
 
     prompt = analyze_transactions_prompt(transactions)
@@ -49,3 +49,28 @@ def call_gemini_analyze(transactions: list[Dict[str, Any]], model: str = "gemini
         "raw": text,
         "response_obj": response,
     }
+
+
+def extract_json_from_text(text: str) -> Dict[str, Any] | None:
+    """Try to extract a JSON object from free text. Returns parsed dict or None."""
+    import json
+    import re
+
+    # find first { and last } to attempt to extract JSON block
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return None
+
+    candidate = text[start:end+1]
+    try:
+        return json.loads(candidate)
+    except Exception:
+        # Try to clean common issues: single quotes -> double quotes
+        candidate2 = candidate.replace("'", '"')
+        try:
+            return json.loads(candidate2)
+        except Exception:
+            # fallback: try regex to find simple key-value lists (not implemented)
+            return None
+
