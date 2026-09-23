@@ -8,6 +8,10 @@ from sqlalchemy.orm import selectinload
 
 from .db import async_session
 from .models import Category, Transaction
+from .llm import call_gemini_analyze
+from fastapi import BackgroundTasks
+from pydantic import BaseModel
+from typing import Any, Dict
 
 
 app = FastAPI(title="Finance SaaS API")
@@ -161,3 +165,38 @@ async def delete_transaction(transaction_id: int):
         await session.commit()
 
         return {"status": "deleted"}
+
+
+class AIAnalyzeRequest(BaseModel):
+    limit: int | None = 100
+    # future: filters, date ranges, etc.
+
+
+@app.post("/api/ai/analyze-transactions")
+async def analyze_transactions_endpoint(data: AIAnalyzeRequest, background_tasks: BackgroundTasks | None = None):
+    """Read transactions from DB, call Gemini, return raw structured response."""
+    async with async_session() as session:
+        stmt = select(Transaction).options(selectinload(Transaction.category)).order_by(Transaction.transaction_date.desc()).limit(data.limit)
+        result = await session.execute(stmt)
+        transactions = result.scalars().all()
+
+        txs = [
+            {
+                "id": t.id,
+                "date": t.transaction_date.isoformat(),
+                "type": t.type,
+                "amount": float(t.amount),
+                "category": (t.category.name if t.category else None),
+                "description": t.description or "",
+            }
+            for t in transactions
+        ]
+
+    # Call Gemini synchronously (could be background task for long-running)
+    try:
+        res = call_gemini_analyze(txs)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"LLM error: {e}")
+
+    # Return raw response for now; frontend should validate before display
+    return {"ok": True, "llm": res}
