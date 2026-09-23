@@ -67,10 +67,31 @@ def build_prompt(transactions: List[Dict[str, Any]], mode: str = "aggregated") -
             " Якщо потрібні деталі — повідомте, але не вигадуйте нічого." 
         )
 
+    # Provide a concrete minimal example to reduce hallucinations and enforce schema
+    example_response = (
+        '{'
+        '"summary": "Короткий підсумок українською", '
+        '"top_expense_categories": [{"name": "groceries", "total": 120.5}], '
+        '"risks": ["висока частота дрібних витрат"], '
+        '"advice": ["зменшити підписок", "переглянути витрати на доставку"]'
+        '}'
+    )
+
     # Final strict instruction in Ukrainian but keep schema keys English for frontend mapping
     final = (
-        header + "\n" + schema + "\n" + constraints + "\n" + body + "\n"
-        "ВІДПОВІДЬ: Поверніть лише один валідний JSON-об'єкт згідно вказаної схеми. Якщо не можете — поверніть {}."
+        header
+        + "\n"
+        + schema
+        + "\n"
+        + constraints
+        + "\n"
+        + body
+        + "\n"
+        + "ДОДАТКОВО: Поверніть числові підсумки як числа з максимум двома десятковими (round to 2 decimals). "
+        + "Обмежте `top_expense_categories` до максимум 5 елементів. Обмежте довжину `risks` і `advice` до максимум 5 рядків кожен. "
+        + "Приклад очікуваної відповіді (використовуйте лише як приклад структури, не копіюйте тексти): "
+        + example_response
+        + "\nВІДПОВІДЬ: Поверніть тільки один валідний JSON-об'єкт згідно вказаної схеми. Якщо не можете — поверніть {}."
     )
 
     return final
