@@ -26,6 +26,7 @@ class LLMParsedModel(BaseModel):
     recommendations: List[str]
 from pydantic import BaseModel
 from typing import Any, Dict
+import functools
 
 
 app = FastAPI(title="Finance SaaS API")
@@ -206,10 +207,15 @@ async def analyze_transactions_endpoint(data: AIAnalyzeRequest):
             for t in transactions
         ]
 
+    # Choose prompt mode: use aggregated mode for larger numbers of transactions
+    # to reduce token usage. Threshold chosen empirically (5 transactions).
+    mode = "aggregated" if len(txs) > 5 else "full"
+
     # Call Gemini in a thread to avoid blocking the event loop and DB pool.
     try:
         loop = asyncio.get_running_loop()
-        call_coro = loop.run_in_executor(None, call_gemini_analyze, txs)
+        call_fn = functools.partial(call_gemini_analyze, txs, mode=mode)
+        call_coro = loop.run_in_executor(None, call_fn)
         res = await asyncio.wait_for(call_coro, timeout=45)
     except asyncio.TimeoutError:
         raise HTTPException(status_code=504, detail="LLM request timed out")
