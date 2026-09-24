@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
+import Chat from './Chat'
 
 function App() {
   const [transactions, setTransactions] = useState([])
@@ -47,25 +48,6 @@ function App() {
     }
 
     loadData()
-  }, [])
-
-  useEffect(() => {
-    // refetch when filter changes
-    setLoading(true)
-    setError('')
-    ;(async () => {
-      try {
-        const resp = await fetch(`/api/transactions?type=${filter}`)
-        if (!resp.ok) throw new Error('API error')
-        const data = await resp.json()
-        setTransactions(data)
-      } catch (err) {
-        console.error(err)
-        setError('Не вдалося завантажити операції.')
-      } finally {
-        setLoading(false)
-      }
-    })()
   }, [filter])
 
   async function refreshAll() {
@@ -104,7 +86,7 @@ function App() {
         try {
           const parsed = JSON.parse(data.llm.raw)
           setAiResult(parsed)
-        } catch (e) {
+        } catch {
           setAiResult({ summary: data.llm.raw, categories: [], risks: [], recommendations: [] })
         }
       } else {
@@ -228,6 +210,10 @@ function App() {
           <h2>Баланс</h2>
           <p>{summary.balance} грн</p>
         </div>
+      </section>
+
+      <section>
+        <Chat />
       </section>
 
       <section>

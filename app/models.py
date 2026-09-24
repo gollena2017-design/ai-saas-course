@@ -7,6 +7,7 @@ from sqlalchemy import (
     BigInteger,
     Date,
     DateTime,
+    Text,
     ForeignKey,
     Numeric,
     String,
@@ -123,3 +124,36 @@ class Transaction(Base):
     category: Mapped["Category | None"] = relationship(
         back_populates="transactions"
     )
+
+
+class ChatThread(Base):
+    __tablename__ = "chat_threads"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+    )
+    checkpoint: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    messages: Mapped[list["ChatMessage"]] = relationship(
+        back_populates="thread",
+        cascade="all, delete-orphan",
+    )
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    thread_id: Mapped[int] = mapped_column(ForeignKey("chat_threads.id"), nullable=False, index=True)
+    role: Mapped[str] = mapped_column(String(20), nullable=False)  # 'user' or 'assistant'
+    content: Mapped[str] = mapped_column(String(2000), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+    )
+
+    thread: Mapped["ChatThread"] = relationship(back_populates="messages")

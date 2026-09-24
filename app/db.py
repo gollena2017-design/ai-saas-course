@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
 load_dotenv()
 
@@ -64,6 +65,10 @@ ssl_context = ssl.create_default_context()
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
+    # TestClient creates a fresh event loop per client. asyncpg connections are
+    # bound to the loop that created them, so reusing pooled connections causes
+    # "Future attached to a different loop". Neon already provides pooling.
+    poolclass=NullPool,
     connect_args={
         "ssl": ssl_context,
     },

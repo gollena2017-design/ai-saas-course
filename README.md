@@ -84,6 +84,23 @@ pip install -r requirements.txt
 python app/main.py
 ```
 
+### AI Chat у React-адмінці
+
+Чат доступний через `POST /api/ai/chat`. Передайте `message` і, для
+продовження розмови, попередній `thread_id`. Відповідь містить `answer` та
+`thread_id`. Історія діалогу зберігається у таблицях `chat_threads` і
+`chat_messages`; перед першим запуском створіть таблиці:
+
+```bash
+python3 -m app.create_tables
+uvicorn app.api:app --reload
+cd frontend && npm install && npm run dev
+```
+
+Інструменти чату є тільки для читання: підсумок операцій, суми за категоріями
+та найбільші витрати. Модель не отримує SQL, доступу до `.env` або можливості
+змінювати операції.
+
 Admin branch `saas/admin-management` provides a simple admin UI for creating and deleting transactions.
 
 ### Запуск у Docker з hot reload

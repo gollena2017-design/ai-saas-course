@@ -95,3 +95,29 @@ def build_prompt(transactions: List[Dict[str, Any]], mode: str = "aggregated") -
     )
 
     return final
+
+
+def build_chat_prompt(context: Dict[str, Any]) -> str:
+    """Build a prompt for the chat endpoint from controlled, read-only data.
+
+    ``context`` is assembled by the backend.  It never contains credentials or
+    an SQL query, so the model can only reason about the data exposed by tools.
+    """
+    conversation = context.get("conversation", [])
+    tool_data = context.get("tool_data", {})
+    tool_result = context.get("tool_result")
+
+    return (
+        "Ти — фінансовий AI-помічник. Відповідай українською, стисло й корисно. "
+        "Використовуй лише історію діалогу та контрольовані read-only дані нижче. "
+        "Не вигадуй сум, операцій чи категорій. Не пропонуй виконати SQL, не проси "
+        "ключі доступу і не стверджуй, що змінив дані.\n\n"
+        f"Історія діалогу:\n{json.dumps(conversation, ensure_ascii=False)}\n\n"
+        f"Доступне фінансове зведення:\n{json.dumps(tool_data, ensure_ascii=False)}\n\n"
+        f"Результат запитаного інструмента (якщо був):\n{json.dumps(tool_result, ensure_ascii=False)}\n\n"
+        "Якщо для відповіді потрібне точніше зведення, поверни ТІЛЬКИ JSON такого вигляду: "
+        '{"tool_call":{"name":"get_transactions_summary|get_category_totals|get_top_expenses",'
+        '"args":{"period_days":30,"limit":5,"top_n":10}}}. '
+        "Використовуй лише один з названих інструментів та лише вказані аргументи. "
+        "В інших випадках дай звичайну текстову відповідь без JSON."
+    )

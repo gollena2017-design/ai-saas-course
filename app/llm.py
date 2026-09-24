@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-from app.prompt import build_prompt
+from app.prompt import build_chat_prompt, build_prompt
 
 
 def get_client():
@@ -22,7 +22,9 @@ def get_client():
     return client
 
 
-def analyze_transactions_prompt(transactions: List[Dict[str, Any]], mode: str = "aggregated") -> str:
+def analyze_transactions_prompt(transactions: List[Dict[str, Any]] | Dict[str, Any], mode: str = "aggregated") -> str:
+    if isinstance(transactions, dict):
+        return build_chat_prompt(transactions)
     return build_prompt(transactions, mode=mode)
 
 
@@ -111,4 +113,3 @@ def extract_json_from_text(text: str) -> Dict[str, Any] | None:
         except Exception:
             # fallback: try regex to find simple key-value lists (not implemented)
             return None
-
