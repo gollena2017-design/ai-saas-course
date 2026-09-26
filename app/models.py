@@ -142,6 +142,11 @@ class ChatThread(Base):
         cascade="all, delete-orphan",
     )
 
+    pending_actions: Mapped[list["PendingAction"]] = relationship(
+        back_populates="thread",
+        cascade="all, delete-orphan",
+    )
+
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
@@ -157,3 +162,42 @@ class ChatMessage(Base):
     )
 
     thread: Mapped["ChatThread"] = relationship(back_populates="messages")
+
+
+class PendingAction(Base):
+    """A proposed mutation which must be explicitly confirmed by a user."""
+
+    __tablename__ = "pending_actions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    thread_id: Mapped[int] = mapped_column(
+        ForeignKey("chat_threads.id"), nullable=False, index=True
+    )
+    action_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    payload: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    thread: Mapped["ChatThread"] = relationship(back_populates="pending_actions")
+    audit_entries: Mapped[list["AIActionAuditLog"]] = relationship(
+        back_populates="action", cascade="all, delete-orphan"
+    )
+
+
+class AIActionAuditLog(Base):
+    """Non-secret audit trail for proposed and confirmed AI actions."""
+
+    __tablename__ = "ai_action_audit_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    action_id: Mapped[int] = mapped_column(ForeignKey("pending_actions.id"), nullable=False, index=True)
+    thread_id: Mapped[int] = mapped_column(ForeignKey("chat_threads.id"), nullable=False, index=True)
+    event: Mapped[str] = mapped_column(String(30), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    action: Mapped["PendingAction"] = relationship(back_populates="audit_entries")

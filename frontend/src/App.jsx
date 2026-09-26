@@ -213,7 +213,7 @@ function App() {
       </section>
 
       <section>
-        <Chat />
+        <Chat onTransactionChanged={refreshAll} />
       </section>
 
       <section>
