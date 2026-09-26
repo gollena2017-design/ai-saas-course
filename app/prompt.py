@@ -106,6 +106,7 @@ def build_chat_prompt(context: Dict[str, Any]) -> str:
     conversation = context.get("conversation", [])
     tool_data = context.get("tool_data", {})
     tool_result = context.get("tool_result")
+    today = context.get("today")
 
     return (
         "Ти — фінансовий AI-помічник. Відповідай українською, стисло й корисно. "
@@ -115,9 +116,18 @@ def build_chat_prompt(context: Dict[str, Any]) -> str:
         f"Історія діалогу:\n{json.dumps(conversation, ensure_ascii=False)}\n\n"
         f"Доступне фінансове зведення:\n{json.dumps(tool_data, ensure_ascii=False)}\n\n"
         f"Результат запитаного інструмента (якщо був):\n{json.dumps(tool_result, ensure_ascii=False)}\n\n"
+        f"Поточна дата: {today}.\n\n"
         "Якщо для відповіді потрібне точніше зведення, поверни ТІЛЬКИ JSON такого вигляду: "
         '{"tool_call":{"name":"get_transactions_summary|get_category_totals|get_top_expenses",'
         '"args":{"period_days":30,"limit":5,"top_n":10}}}. '
         "Використовуй лише один з названих інструментів та лише вказані аргументи. "
+        "Якщо користувач просить додати одну операцію і надані всі дані, НЕ створюй її. "
+        "Натомість поверни ТІЛЬКИ JSON: "
+        '{"action_proposal":{"action_type":"create_transaction","payload":'
+        '{"type":"expense|income","amount":450,"category":"Транспорт",'
+        f'"description":"таксі","date":"{today}"}},'
+        '"reply":"Я підготував дію для підтвердження."}}. '
+        "Дата обов'язкова у форматі YYYY-MM-DD. Якщо бракує хоча б одного поля, постав "
+        "уточнювальне питання і не повертай action_proposal. "
         "В інших випадках дай звичайну текстову відповідь без JSON."
     )

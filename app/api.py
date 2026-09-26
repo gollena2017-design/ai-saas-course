@@ -1,19 +1,18 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from .db import async_session, engine
-from .models import Category, Transaction
+from .models import AIActionAuditLog, Category, ChatMessage, ChatThread, PendingAction, Transaction
 from .llm import call_gemini_analyze, extract_json_from_text
 import logging
 import asyncio
 import time
 import anyio
-from pydantic import ValidationError
 from typing import List
 
 
@@ -31,7 +30,6 @@ from pydantic import BaseModel
 from typing import Any, Dict
 import functools
 from .settings import AGGREGATE_TX_THRESHOLD
-from .models import ChatThread, ChatMessage
 from .tools import get_transactions_summary, get_top_expenses, get_category_totals
 import json as _json
 from typing import Any
@@ -364,6 +362,47 @@ class ChatRequest(BaseModel):
     thread_id: int | None = Field(default=None, gt=0)
 
 
+class CreateTransactionPayload(BaseModel):
+    """Strict backend contract for the single allowed action tool."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    type: str
+    amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    category: str = Field(min_length=1, max_length=100)
+    description: str | None = Field(default=None, max_length=500)
+    date: date
+
+    def validated_type(self) -> str:
+        transaction_type = self.type.lower()
+        if transaction_type not in {"income", "expense"}:
+            raise ValueError("type must be income or expense")
+        return transaction_type
+
+
+def _serialize_action(action: PendingAction) -> dict[str, Any]:
+    return {
+        "action_id": action.id,
+        "thread_id": action.thread_id,
+        "action_type": action.action_type,
+        "payload": _json.loads(action.payload),
+        "status": action.status,
+        "created_at": action.created_at.isoformat(),
+    }
+
+
+async def _write_action_audit(
+    session, action: PendingAction, event: str, status: str, detail: str | None = None
+) -> None:
+    session.add(AIActionAuditLog(
+        action_id=action.id,
+        thread_id=action.thread_id,
+        event=event,
+        status=status,
+        detail=detail,
+    ))
+
+
 @app.post("/api/ai/chat")
 async def ai_chat_endpoint(req: ChatRequest):
     """Continue a conversation using persisted short-term memory and read-only tools."""
@@ -400,7 +439,12 @@ async def ai_chat_endpoint(req: ChatRequest):
         "categories": await get_category_totals(),
         "top_expenses": await get_top_expenses(limit=3),
     }
-    prompt_input = {"conversation": conversation, "tool_data": tool_data, "tool_result": None}
+    prompt_input = {
+        "conversation": conversation,
+        "tool_data": tool_data,
+        "tool_result": None,
+        "today": date.today().isoformat(),
+    }
 
     try:
         loop = asyncio.get_running_loop()
@@ -419,6 +463,18 @@ async def ai_chat_endpoint(req: ChatRequest):
     # Try to parse a tool call from the LLM response
     parsed_llm = extract_json_from_text(raw_text) if raw_text else None
     tool_result: Any | None = None
+    proposed_payload: CreateTransactionPayload | None = None
+    if isinstance(parsed_llm, dict) and parsed_llm.get("action_proposal"):
+        proposal = parsed_llm["action_proposal"]
+        if proposal.get("action_type") != "create_transaction":
+            raw_text = "Я можу лише підготувати створення однієї операції для підтвердження."
+        else:
+            try:
+                proposed_payload = CreateTransactionPayload.model_validate(proposal.get("payload", {}))
+                proposed_payload.validated_type()
+                raw_text = proposal.get("reply") or "Я підготував дію. Перевірте дані й підтвердьте її."
+            except (ValidationError, ValueError):
+                raw_text = "Не можу підготувати дію: перевірте суму, тип, категорію та дату."
     if parsed_llm and isinstance(parsed_llm, dict) and parsed_llm.get("tool_call"):
         tc = parsed_llm["tool_call"]
         tool_name = tc.get("name")
@@ -470,15 +526,122 @@ async def ai_chat_endpoint(req: ChatRequest):
         "last_assistant": answer,
     }
 
+    pending_action: PendingAction | None = None
     async with async_session() as session:
         thread = await session.get(ChatThread, thread_id)
         if thread is None:  # defensive: a thread might have been removed concurrently
             raise HTTPException(status_code=404, detail="Thread not found")
         session.add(ChatMessage(thread_id=thread_id, role="assistant", content=answer))
         thread.checkpoint = _json.dumps(new_checkpoint, ensure_ascii=False)
+        if proposed_payload is not None:
+            pending_action = PendingAction(
+                thread_id=thread_id,
+                action_type="create_transaction",
+                payload=proposed_payload.model_dump_json(),
+                status="pending",
+            )
+            session.add(pending_action)
+            await session.flush()
+            await _write_action_audit(session, pending_action, "created", "pending")
         await session.commit()
 
-    return {"thread_id": thread_id, "answer": answer, "checkpoint": new_checkpoint}
+    return {
+        "thread_id": thread_id,
+        "answer": answer,
+        "checkpoint": new_checkpoint,
+        "pending_action": _serialize_action(pending_action) if pending_action else None,
+    }
+
+
+@app.post("/api/ai/actions/{action_id}/confirm")
+async def confirm_pending_action(action_id: int):
+    """Execute the single allowed action only after explicit confirmation."""
+    async with async_session() as session:
+        action = await session.get(PendingAction, action_id)
+        if action is None:
+            raise HTTPException(status_code=404, detail="Action not found")
+        if action.status != "pending":
+            raise HTTPException(status_code=409, detail="Action is no longer pending")
+        if action.action_type != "create_transaction":
+            raise HTTPException(status_code=400, detail="Action type is not allowed")
+
+        try:
+            payload = CreateTransactionPayload.model_validate_json(action.payload)
+            transaction_type = payload.validated_type()
+        except (ValidationError, ValueError) as exc:
+            action.status = "failed"
+            action.error = "Stored payload failed validation"
+            await _write_action_audit(session, action, "validation_failed", "failed")
+            await session.commit()
+            raise HTTPException(status_code=422, detail="Action payload is invalid") from exc
+
+        category_result = await session.execute(
+            select(Category).where(Category.name == payload.category)
+        )
+        category = category_result.scalar_one_or_none()
+        if category is None:
+            category = Category(name=payload.category)
+            session.add(category)
+            await session.flush()
+
+        # Prevent a double click/retry from creating an identical record.
+        duplicate = await session.execute(
+            select(Transaction.id)
+            .where(Transaction.type == transaction_type)
+            .where(Transaction.amount == payload.amount)
+            .where(Transaction.category_id == category.id)
+            .where(Transaction.transaction_date == payload.date)
+            .where(Transaction.description == payload.description)
+            .limit(1)
+        )
+        if duplicate.scalar_one_or_none() is not None:
+            action.status = "failed"
+            action.error = "Duplicate transaction"
+            await _write_action_audit(session, action, "duplicate_rejected", "failed")
+            await session.commit()
+            raise HTTPException(status_code=409, detail="Duplicate transaction")
+
+        transaction = Transaction(
+            category_id=category.id,
+            type=transaction_type,
+            transaction_date=payload.date,
+            amount=payload.amount,
+            description=payload.description,
+        )
+        session.add(transaction)
+        action.status = "confirmed"
+        action.confirmed_at = datetime.utcnow()
+        await session.flush()
+        await _write_action_audit(session, action, "confirmed", "confirmed")
+        await session.commit()
+
+        return {
+            "action": _serialize_action(action),
+            "transaction": {
+                "id": transaction.id,
+                "type": transaction.type,
+                "amount": float(transaction.amount),
+                "category": category.name,
+                "date": transaction.transaction_date.isoformat(),
+                "description": transaction.description or "",
+            },
+        }
+
+
+@app.post("/api/ai/actions/{action_id}/cancel")
+async def cancel_pending_action(action_id: int):
+    async with async_session() as session:
+        action = await session.get(PendingAction, action_id)
+        if action is None:
+            raise HTTPException(status_code=404, detail="Action not found")
+        if action.status != "pending":
+            raise HTTPException(status_code=409, detail="Action is no longer pending")
+
+        action.status = "cancelled"
+        action.cancelled_at = datetime.utcnow()
+        await _write_action_audit(session, action, "cancelled", "cancelled")
+        await session.commit()
+        return {"action": _serialize_action(action)}
 
 
 @app.get("/api/ai/thread/{thread_id}")
