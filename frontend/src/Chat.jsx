@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import './Chat.css'
 
-export default function Chat() {
+export default function Chat({ onTransactionChanged }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [threadId, setThreadId] = useState(() => localStorage.getItem('chat_thread_id'))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [pendingAction, setPendingAction] = useState(null)
+  const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
     // Restore the whole conversation, not merely its latest pair of messages.
@@ -61,11 +63,37 @@ export default function Chat() {
       }
 
       append('assistant', answer)
+      if (data.pending_action) setPendingAction(data.pending_action)
     } catch (error) {
       console.error(error)
       setError('Не вдалося отримати відповідь. Перевірте з’єднання з API.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const resolveAction = async (operation) => {
+    if (!pendingAction || actionLoading) return
+    setActionLoading(true)
+    setError('')
+    try {
+      const response = await fetch(`/api/ai/actions/${pendingAction.action_id}/${operation}`, {
+        method: 'POST',
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.detail || 'Помилка виконання дії')
+      setPendingAction(data.action)
+      if (operation === 'confirm') {
+        append('assistant', 'Дію підтверджено: операцію додано до фінансових даних.')
+        onTransactionChanged?.()
+      } else {
+        append('assistant', 'Запропоновану дію скасовано.')
+      }
+    } catch (actionError) {
+      console.error(actionError)
+      setError(actionError.message || 'Не вдалося виконати дію.')
+    } finally {
+      setActionLoading(false)
     }
   }
 
@@ -88,6 +116,27 @@ export default function Chat() {
           </div>
         ))}
       </div>
+
+      {pendingAction && (
+        <section className="pending-action" aria-live="polite">
+          <h4>Запропонована дія</h4>
+          <p><strong>Тип:</strong> {pendingAction.payload.type === 'expense' ? 'створити витрату' : 'створити дохід'}</p>
+          <p><strong>Сума:</strong> {pendingAction.payload.amount} грн</p>
+          <p><strong>Категорія:</strong> {pendingAction.payload.category}</p>
+          <p><strong>Дата:</strong> {pendingAction.payload.date}</p>
+          {pendingAction.payload.description && <p><strong>Опис:</strong> {pendingAction.payload.description}</p>}
+          {pendingAction.status === 'pending' ? (
+            <div className="action-controls">
+              <button onClick={() => resolveAction('confirm')} disabled={actionLoading}>
+                {actionLoading ? 'Обробка...' : 'Підтвердити'}
+              </button>
+              <button onClick={() => resolveAction('cancel')} disabled={actionLoading}>
+                Скасувати
+              </button>
+            </div>
+          ) : <p className="muted">Статус: {pendingAction.status}</p>}
+        </section>
+      )}
 
       <div className="chat-input">
         <textarea value={input} disabled={loading} onChange={(e)=>setInput(e.target.value)} onKeyDown={handleKey} placeholder="Напишіть повідомлення..." />

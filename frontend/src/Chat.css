@@ -20,3 +20,6 @@
 .chat-input { margin-top:8px }
 .chat-input textarea { width:100%; min-height:60px }
 .controls { margin-top:6px; display:flex; justify-content:flex-end }
+.pending-action { margin-top: 12px; padding: 12px; border: 1px solid #f2bd4a; border-radius: 6px; background: #fffbe6; }
+.pending-action h4, .pending-action p { margin: 0 0 8px; }
+.action-controls { display: flex; gap: 8px; }
