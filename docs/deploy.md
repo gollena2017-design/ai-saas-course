@@ -56,3 +56,18 @@ Homework checklist (deliverables)
 - Complete a successful deploy and verify public URL.
 - Add `docs/deploy.md` to repo and open a PR.
 
+Final verification (after deploy)
+
+- Confirm public URL loads and React UI renders.
+- Confirm `GET /health` and `GET /healthz` return 200.
+- Confirm `GET /assets/*` and `/favicon.svg` return 200.
+- Create a test transaction via `POST /api/transactions` and verify it appears in `GET /api/transactions`.
+- Run `POST /api/ai/analyze-transactions` with a small `limit` to verify AI integration (needs `GEMINI_API_KEY`).
+- Ensure `DATABASE_URL`, `GEMINI_API_KEY`, `ADMIN_PASSWORD` are set in Render Dashboard (do NOT commit real values to Git).
+
+Final notes
+
+- Keep `render.yaml` and `Dockerfile.render` in Git so deployment is reproducible from the repository.
+- Use the Render Dashboard to manage secrets and redeploys; do not commit production secrets. 
+- After verification, remove any remaining debug endpoints and merge `deploy/render` into `main`.
+
