@@ -146,33 +146,7 @@ from sqlalchemy import insert
 
 app = FastAPI(title="Finance SaaS API")
 
-# Serve built frontend at root so asset paths (/assets/*, /favicon.svg) match
-frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
-if frontend_dist.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
-    # Also mount assets and serve favicon explicitly to avoid edge routing issues
-    assets_dir = frontend_dist / "assets"
-    if assets_dir.exists():
-        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
-
-    favicon = frontend_dist / "favicon.svg"
-    if favicon.exists():
-        @app.get("/favicon.svg")
-        async def favicon_svg():
-            return FileResponse(favicon)
-
-
-# Temporary debug endpoint to inspect frontend build files on the server.
-# Remove after debugging.
-@app.get("/_debug/static-files")
-async def debug_static_files():
-    if not frontend_dist.exists():
-        return {"ok": False, "reason": "frontend dist not found", "path": str(frontend_dist)}
-    files = []
-    for p in sorted(frontend_dist.rglob("*")):
-        rel = p.relative_to(frontend_dist)
-        files.append(str(rel))
-    return {"ok": True, "files": files}
+# Static files are mounted at the end of the file so API routes are matched first.
 
 
 class TransactionCreate(BaseModel):
@@ -397,6 +371,37 @@ async def analyze_transactions_endpoint(data: AIAnalyzeRequest):
         return {"ok": True, "llm": {"raw": raw_text, "parsed": parsed, "validation_error": ve.errors()}}
 
     return {"ok": True, "llm": {"raw": raw_text, "parsed": validated.dict()}}
+
+
+# Serve built frontend at root so asset paths (/assets/*, /favicon.svg) match
+frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
+if frontend_dist.exists():
+    # Mount assets explicitly
+    assets_dir = frontend_dist / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+    # Serve favicon explicitly
+    favicon = frontend_dist / "favicon.svg"
+    if favicon.exists():
+        @app.get("/favicon.svg")
+        async def favicon_svg():
+            return FileResponse(favicon)
+
+    # Mount the SPA at root as a fallback (after API routes are defined)
+    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
+
+    # Temporary debug endpoint to inspect frontend build files on the server.
+    # Remove after verification.
+    @app.get("/_debug/static-files")
+    async def debug_static_files():
+        if not frontend_dist.exists():
+            return {"ok": False, "reason": "frontend dist not found", "path": str(frontend_dist)}
+        files = []
+        for p in sorted(frontend_dist.rglob("*")):
+            rel = p.relative_to(frontend_dist)
+            files.append(str(rel))
+        return {"ok": True, "files": files}
 
 
 class ChatRequest(BaseModel):
