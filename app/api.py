@@ -146,18 +146,10 @@ from sqlalchemy import insert
 
 app = FastAPI(title="Finance SaaS API")
 
-# Serve built frontend if present under /static and expose index at /
+# Serve built frontend at root so asset paths (/assets/*, /favicon.svg) match
 frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
-    app.mount("/static", StaticFiles(directory=str(frontend_dist)), name="static")
-
-    index_path = frontend_dist / "index.html"
-
-    @app.get("/", response_class=HTMLResponse)
-    async def serve_index():
-        if index_path.exists():
-            return FileResponse(index_path)
-        return {"message": "Finance API is running"}
+    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
 
 
 class TransactionCreate(BaseModel):
