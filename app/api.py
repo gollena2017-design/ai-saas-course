@@ -162,6 +162,19 @@ if frontend_dist.exists():
             return FileResponse(favicon)
 
 
+# Temporary debug endpoint to inspect frontend build files on the server.
+# Remove after debugging.
+@app.get("/_debug/static-files")
+async def debug_static_files():
+    if not frontend_dist.exists():
+        return {"ok": False, "reason": "frontend dist not found", "path": str(frontend_dist)}
+    files = []
+    for p in sorted(frontend_dist.rglob("*")):
+        rel = p.relative_to(frontend_dist)
+        files.append(str(rel))
+    return {"ok": True, "files": files}
+
+
 class TransactionCreate(BaseModel):
     type: str
     amount: Decimal = Field(gt=0)
