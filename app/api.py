@@ -214,9 +214,9 @@ async def get_transactions(type: str | None = None):
         ]
 
 
-    @app.get("/health")
-    async def health():
-        return {"status": "ok"}
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 
 @app.post("/api/transactions")
