@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
+from decimal import ROUND_HALF_UP
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -283,23 +284,26 @@ async def get_summary():
         result = await session.execute(select(Transaction))
         transactions = result.scalars().all()
 
-        total_income = sum(
-            float(transaction.amount)
-            for transaction in transactions
-            if transaction.type == "income"
+        total_income: Decimal = sum(
+            (transaction.amount for transaction in transactions if transaction.type == "income"),
+            Decimal("0"),
         )
 
-        total_expense = sum(
-            float(transaction.amount)
-            for transaction in transactions
-            if transaction.type == "expense"
+        total_expense: Decimal = sum(
+            (transaction.amount for transaction in transactions if transaction.type == "expense"),
+            Decimal("0"),
         )
 
-        return {
-            "total_income": total_income,
-            "total_expense": total_expense,
-            "balance": total_income - total_expense,
-        }
+        # Round to 2 decimal places using half-up rounding and return as floats
+        def fmt(d: Decimal) -> float:
+            q = d.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            return float(q)
+
+        ti = fmt(total_income)
+        te = fmt(total_expense)
+        bal = fmt(Decimal(str(ti)) - Decimal(str(te)))
+
+        return {"total_income": ti, "total_expense": te, "balance": bal}
 
 
 @app.delete("/api/transactions/{transaction_id}")
