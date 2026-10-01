@@ -150,6 +150,16 @@ app = FastAPI(title="Finance SaaS API")
 frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
     app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
+    # Also mount assets and serve favicon explicitly to avoid edge routing issues
+    assets_dir = frontend_dist / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+    favicon = frontend_dist / "favicon.svg"
+    if favicon.exists():
+        @app.get("/favicon.svg")
+        async def favicon_svg():
+            return FileResponse(favicon)
 
 
 class TransactionCreate(BaseModel):
