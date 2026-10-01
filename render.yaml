@@ -5,7 +5,7 @@ services:
   branch: main
   dockerfilePath: ./Dockerfile.render
   dockerContext: .
-  healthCheckPath: /health
+  healthCheckPath: /healthz
   autoDeployTrigger: commit
   envVars:
   - key: DATABASE_URL

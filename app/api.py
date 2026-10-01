@@ -391,17 +391,7 @@ if frontend_dist.exists():
     # Mount the SPA at root as a fallback (after API routes are defined)
     app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
 
-    # Temporary debug endpoint to inspect frontend build files on the server.
-    # Remove after verification.
-    @app.get("/_debug/static-files")
-    async def debug_static_files():
-        if not frontend_dist.exists():
-            return {"ok": False, "reason": "frontend dist not found", "path": str(frontend_dist)}
-        files = []
-        for p in sorted(frontend_dist.rglob("*")):
-            rel = p.relative_to(frontend_dist)
-            files.append(str(rel))
-        return {"ok": True, "files": files}
+    # (debug endpoint removed in final deployment)
 
 
 class ChatRequest(BaseModel):
