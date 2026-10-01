@@ -219,6 +219,12 @@ async def health():
     return {"status": "ok"}
 
 
+@app.get("/healthz")
+async def healthz():
+    # Alias for Render's default health endpoint
+    return {"status": "ok"}
+
+
 @app.post("/api/transactions")
 async def create_transaction(data: TransactionCreate):
     transaction_type = data.type.strip().lower()
