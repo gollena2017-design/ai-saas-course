@@ -1,0 +1,21 @@
+services:
+- type: web
+  name: ai-saas-app
+  runtime: docker
+  branch: main
+  dockerfilePath: ./Dockerfile.render
+  dockerContext: .
+  healthCheckPath: /health
+  autoDeployTrigger: commit
+  envVars:
+  - key: DATABASE_URL
+    sync: false
+  - key: GEMINI_API_KEY
+    sync: false
+  - key: BOT_TOKEN
+    sync: false
+  - key: ADMIN_PASSWORD
+    sync: false
+  - key: APP_ENV
+    value: production
+    sync: false

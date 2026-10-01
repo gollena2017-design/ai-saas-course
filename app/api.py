@@ -2,6 +2,8 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -143,6 +145,11 @@ from sqlalchemy import insert
 
 app = FastAPI(title="Finance SaaS API")
 
+# Serve built frontend if present
+frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
+if frontend_dist.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
+
 
 class TransactionCreate(BaseModel):
     type: str
@@ -196,6 +203,11 @@ async def get_transactions(type: str | None = None):
             }
             for transaction in transactions
         ]
+
+
+    @app.get("/health")
+    async def health():
+        return {"status": "ok"}
 
 
 @app.post("/api/transactions")
