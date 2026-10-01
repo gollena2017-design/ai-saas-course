@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, HTMLResponse
 from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import select
@@ -145,10 +146,18 @@ from sqlalchemy import insert
 
 app = FastAPI(title="Finance SaaS API")
 
-# Serve built frontend if present
+# Serve built frontend if present under /static and expose index at /
 frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
+    app.mount("/static", StaticFiles(directory=str(frontend_dist)), name="static")
+
+    index_path = frontend_dist / "index.html"
+
+    @app.get("/", response_class=HTMLResponse)
+    async def serve_index():
+        if index_path.exists():
+            return FileResponse(index_path)
+        return {"message": "Finance API is running"}
 
 
 class TransactionCreate(BaseModel):
