@@ -159,6 +159,12 @@ class TransactionCreate(BaseModel):
 
 @app.get("/")
 async def root():
+    # If a built frontend exists, serve the SPA index.html at root in production.
+    frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
+    index_file = frontend_dist / "index.html"
+    if index_file.exists():
+        return HTMLResponse(index_file.read_text(encoding='utf-8'))
+
     return {"message": "Finance API is running"}
 
 
