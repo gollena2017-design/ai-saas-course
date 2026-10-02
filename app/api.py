@@ -398,8 +398,19 @@ if frontend_dist.exists():
         async def favicon_svg():
             return FileResponse(favicon)
 
-    # Mount the SPA at root as a fallback (after API routes are defined)
-    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
+    # Serve SPA index.html for GET requests that aren't API or asset paths.
+    # Avoid mounting StaticFiles at root because that can intercept non-GET
+    # methods (like POST) and return 405 for API endpoints under the same
+    # host. Instead provide a GET-only fallback so POST/OPTIONS reach API
+    # routes as expected.
+    @app.get("/{full_path:path}")
+    async def spa_fallback(full_path: str):
+        # Only serve the SPA for GET navigation requests; assets and API
+        # routes are handled above (/assets, /favicon.svg, /api/*).
+        index_file = frontend_dist / "index.html"
+        if index_file.exists():
+            return HTMLResponse(index_file.read_text(encoding="utf-8"))
+        raise HTTPException(status_code=404, detail="Not found")
 
     # (debug endpoint removed in final deployment)
 
