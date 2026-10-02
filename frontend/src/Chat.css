@@ -1,5 +1,5 @@
 .chat {
-  border: 1px solid #ddd;
+  border: 1px solid var(--border);
   padding: 12px;
   border-radius: 6px;
   max-width: 720px;
@@ -9,17 +9,17 @@
   min-height: 160px;
   max-height: 320px;
   overflow: auto;
-  background: #fafafa;
+  background: rgba(244,239,234,0.6);
   padding: 8px;
   border-radius: 4px;
 }
 .msg { margin: 8px 0; }
-.msg .role { font-size: 12px; color:#666 }
-.msg.user .text { background:#e6f7ff; padding:8px; border-radius:6px }
-.msg.assistant .text { background:#fffbe6; padding:8px; border-radius:6px }
+.msg .role { font-size: 12px; color:var(--text-h) }
+.msg.user .text { background: rgba(0,109,119,0.08); padding:8px; border-radius:6px; color: var(--accent-strong) }
+.msg.assistant .text { background: rgba(15,76,92,0.06); padding:8px; border-radius:6px; color: var(--text) }
 .chat-input { margin-top:8px }
 .chat-input textarea { width:100%; min-height:60px }
 .controls { margin-top:6px; display:flex; justify-content:flex-end }
-.pending-action { margin-top: 12px; padding: 12px; border: 1px solid #f2bd4a; border-radius: 6px; background: #fffbe6; }
+.pending-action { margin-top: 12px; padding: 12px; border: 1px solid var(--accent-border); border-radius: 6px; background: rgba(255,255,255,0.6); }
 .pending-action h4, .pending-action p { margin: 0 0 8px; }
 .action-controls { display: flex; gap: 8px; }
