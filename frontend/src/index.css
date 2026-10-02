@@ -1,13 +1,13 @@
 :root {
-  --text: #0F4C5C;
-  --text-h: #06343a;
-  --bg: #F4EFEA;
+  --text: #f4efeA;
+  --text-h: #ffffff;
+  --bg: #0F4C5C; /* emerald background */
   --border: rgba(4,36,40,0.08);
   --code-bg: #eef6f7;
-  --accent: #006D77; /* primary teal */
-  --accent-strong: #0F4C5C; /* darker */
-  --accent-bg: rgba(0, 109, 119, 0.08);
-  --accent-border: rgba(0, 109, 119, 0.25);
+  --accent: #F4EFEA; /* light accent on emerald */
+  --accent-strong: #006D77; /* darker accent */
+  --accent-bg: rgba(244,239,234,0.08);
+  --accent-border: rgba(244,239,234,0.18);
   --social-bg: rgba(244, 239, 234, 0.6);
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
