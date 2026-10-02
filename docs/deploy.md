@@ -2,6 +2,8 @@
 
 This document describes how to deploy the full-stack Finance SaaS to Render.
 
+Production URL: https://ai-saas-course-j85m.onrender.com
+
 Preflight (before creating Render service)
 
 - Ensure `main` branch contains latest code.
