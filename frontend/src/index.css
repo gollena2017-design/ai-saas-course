@@ -30,6 +30,19 @@
   }
 }
 
+/* Theme variants when container has data-theme attribute */
+main[data-theme="indigo"] {
+  --accent: #4f46e5;
+  --accent-bg: rgba(79,70,229,0.08);
+  --accent-border: rgba(79,70,229,0.25);
+}
+
+main[data-theme="coral"] {
+  --accent: #f97361;
+  --accent-bg: rgba(249,115,97,0.08);
+  --accent-border: rgba(249,115,97,0.25);
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --text: #cbd5cc;
