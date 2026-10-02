@@ -21,7 +21,6 @@ function App() {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState('')
   const [aiResult, setAiResult] = useState(null)
-  const [theme, setTheme] = useState('emerald')
 
   useEffect(() => {
     async function loadData() {
@@ -193,18 +192,8 @@ function App() {
   }
 
   return (
-    <main className="container" data-theme={theme}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <h1>Фінансовий dashboard</h1>
-        <div>
-          <label style={{marginRight:8}}>Тема:</label>
-          <select value={theme} onChange={(e)=>setTheme(e.target.value)} aria-label="Тема">
-            <option value="emerald">Emerald</option>
-            <option value="indigo">Indigo</option>
-            <option value="coral">Coral</option>
-          </select>
-        </div>
-      </div>
+    <main className="container">
+      <h1>Фінансовий dashboard</h1>
 
       <section className="cards">
         <div className="card">
