@@ -38,3 +38,15 @@ Screenshots to add:
 - DNS records
 - Render Custom Domain configured and Verified/Certificate Issued
 - App running at custom domain
+
+## Screenshots
+
+Place screenshots in `docs/screenshots/` and they will be referenced below.
+
+![NIC.UA - Domains list](docs/screenshots/nic_domains.png)
+![NIC.UA - Name servers and DNS records](docs/screenshots/nic_ns_records.png)
+![Render - Project / Services overview](docs/screenshots/render_overview.png)
+![Render - Custom Domain Verified / Certificate Issued](docs/screenshots/render_custom_domain.png)
+![Site on custom domain (homepage)](docs/screenshots/site_homepage.png)
+
+If you prefer, upload the screenshots here in the chat and I will add them to the repository under `docs/screenshots/` and commit them.
