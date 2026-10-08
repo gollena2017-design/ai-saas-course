@@ -376,11 +376,11 @@ async def analyze_transactions_endpoint(data: AIAnalyzeRequest):
 
     # Validate with Pydantic
     try:
-        validated = LLMParsedModel.parse_obj(parsed)
+        validated = LLMParsedModel.model_validate(parsed)
     except ValidationError as ve:
         return {"ok": True, "llm": {"raw": raw_text, "parsed": parsed, "validation_error": ve.errors()}}
 
-    return {"ok": True, "llm": {"raw": raw_text, "parsed": validated.dict()}}
+    return {"ok": True, "llm": {"raw": raw_text, "parsed": validated.model_dump()}}
 
 
 # Serve built frontend at root so asset paths (/assets/*, /favicon.svg) match

@@ -11,7 +11,7 @@ Preflight (before creating Render service)
 - Docker image builds locally with `Dockerfile.render`.
 - `.env` is NOT committed to Git.
 - `.env.example` contains all required environment variable names.
-- Backend has `/health` endpoint returning 200 JSON.
+- Backend has `/healthz` endpoint returning 200 JSON.
 - `Dockerfile.render` exists and builds both frontend and backend.
 - `render.yaml` exists if you want to use a Blueprint.
 
@@ -28,7 +28,7 @@ Render manual steps
 3. Select repository and `main` branch.
 4. Runtime: Docker. Set Dockerfile path to `./Dockerfile.render` if not auto-detected.
 5. Add environment variables (Database URL, API keys, BOT_TOKEN, ADMIN_PASSWORD, etc.).
-6. Health check path: `/health`.
+6. Health check path: `/healthz`.
 7. Create service and watch deploy logs.
 
 Common failures and how to debug
@@ -51,7 +51,7 @@ Homework checklist (deliverables)
 	```
 - Add or verify `Dockerfile.render` builds frontend and backend.
 - Add `render.yaml`.
-- Add `/health` endpoint.
+- Add `/healthz` endpoint.
 - Update `.env.example`.
 - Do NOT commit real secrets.
 - Create Render Web Service or Blueprint and configure env vars.
@@ -61,7 +61,7 @@ Homework checklist (deliverables)
 Final verification (after deploy)
 
 - Confirm public URL loads and React UI renders.
-- Confirm `GET /health` and `GET /healthz` return 200.
+- Confirm `GET /healthz` returns 200.
 - Confirm `GET /assets/*` and `/favicon.svg` return 200.
 - Create a test transaction via `POST /api/transactions` and verify it appears in `GET /api/transactions`.
 - Run `POST /api/ai/analyze-transactions` with a small `limit` to verify AI integration (needs `GEMINI_API_KEY`).
@@ -72,4 +72,3 @@ Final notes
 - Keep `render.yaml` and `Dockerfile.render` in Git so deployment is reproducible from the repository.
 - Use the Render Dashboard to manage secrets and redeploys; do not commit production secrets. 
 - After verification, remove any remaining debug endpoints and merge `deploy/render` into `main`.
-

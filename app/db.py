@@ -59,8 +59,15 @@ DATABASE_URL = urlunsplit(
 )
 
 
-# Neon requires an encrypted SSL/TLS connection.
-ssl_context = ssl.create_default_context()
+# Neon requires TLS; a local PostgreSQL service used by CI normally does not.
+# Keep SSL enabled whenever the connection URL explicitly requests it or uses
+# Neon, and do not force it for localhost test databases.
+needs_ssl = (
+    "neon.tech" in url_parts.hostname if url_parts.hostname else False
+) or any(key == "sslmode" and value in {"require", "verify-ca", "verify-full"}
+         for key, value in parse_qsl(url_parts.query))
+
+connect_args = {"ssl": ssl.create_default_context()} if needs_ssl else {}
 
 engine = create_async_engine(
     DATABASE_URL,
@@ -69,9 +76,7 @@ engine = create_async_engine(
     # bound to the loop that created them, so reusing pooled connections causes
     # "Future attached to a different loop". Neon already provides pooling.
     poolclass=NullPool,
-    connect_args={
-        "ssl": ssl_context,
-    },
+    connect_args=connect_args,
 )
 
 async_session = async_sessionmaker(
