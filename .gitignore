@@ -34,3 +34,4 @@ dist/
 
 # Logs
 *.log
+gitleaks*-report.json
